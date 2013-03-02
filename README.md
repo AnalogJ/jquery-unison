@@ -4,8 +4,13 @@ jquery-unison
 JQuery Plugin that aggregates multiple Google Calendars in javascript using the GData library
 
 
-##inputs:#
-*calendars* - array of calendar objects: {key:"calendarKey", id:"Google Calendar ID"}
+##input:#
+    
+    @param /*{Object}*/ options
+    {
+      calendars: /*Array of Calendar Objects*/,
+      eventParser: /*Function - callback function that preforms custom logic on events returned by the GData api*/
+    }
 
 ##functions:#
 
@@ -45,10 +50,17 @@ callback in an EventsContainer
     @param *{Function}* callback(**EventsContainer**)
 
 ###containers:###
+**Calendar**:
+
+    {
+      key:/*String - calendarKey*/, 
+      id:/*String - Google Calendar ID*/
+    }
+
 **EventsContainer**: 
 
     {
-      key: /*String - calendarKey,*/,
+      key: /*String - calendarKey*/,
       events:/*Array of Event Objects*/
       
       flatten:/*Function - returns a sorted array of events contained within the container. (ordered by start date, title)*/
