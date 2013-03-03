@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width">
+
+    </head>
+    <body>
+        <!--[if lt IE 7]>
+            <p class="chromeframe">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> or <a href="http://www.google.com/chromeframe/?redirect=true">activate Google Chrome Frame</a> to improve your experience.</p>
+        <![endif]-->
+
+        <!-- Add your site or application content here -->
+        <p id="unison">Hello world! This is HTML5 Boilerplate.</p>
+
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+        <script type="text/javascript">
+            function handleClientLoad() {
+                gapi.client.setApiKey('AIzaSyBDu83AAPipb6uI0jiQqOI4lbk9REIN85c');
+                gapi.client.load('calendar', 'v3', function(){
+                    
+                    $(function(){
+                    var options = {};
+                    options.calendars = [{
+    "key": "Agricultural, Life and Environmental Sciences",
+    "id": "ualberta.ca_2v3p6rpf54suburs18h3444l6c@group.calendar.google.com"
+}, {
+    "key": "Arts",
+    "id": "ualberta.ca_1o55esai8rco0o8242i1p4nv88@group.calendar.google.com"
+}, {
+    "key": "Engineering",
+    "id": "ualberta.ca_hr1a511gaed15ve9p3t3ok7j2s@group.calendar.google.com"
+}];
+                    
+                    
+                    $('#unison').unison(options)
+                    $('#unison').unison("eventsOnDate",{date: new Date()},function(eventsContainer, error){})
+                });
+                    
+                });
+                
+                
+            }
+            
+            function handlerCalendarLoad(){
+                
+                
+            }
+        </script>
+        <script src="//apis.google.com/js/client.js?onload=handleClientLoad"></script>
+        <script src="jquery.gdata.unison.js"></script>
+
+        
+    </body>
+</html>

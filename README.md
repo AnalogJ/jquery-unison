@@ -24,7 +24,7 @@ callback in an EventsContainer
       
       keys: /*Array of Strings - Optional list of calendars to retrieve events from*/
     }
-    @param *{Function}* callback(**EventsContainer**)
+    @param *{Function}* callback(**EventsContainer**, **ErrorContainer**)
 
 **getEventsInMonth** 
     
@@ -35,7 +35,7 @@ callback in an EventsContainer
       
       keys: /*Array of Strings - Optional list of calendars to retrieve events from*/
     }
-    @param *{Function}* callback(**EventsContainer**)
+    @param *{Function}* callback(**EventsContainer**, **ErrorContainer**)
     
 **getEventsInRange**
  
@@ -47,7 +47,7 @@ callback in an EventsContainer
       
       keys: /*Array of Strings - Optional list of calendars to retrieve events from*/
     }
-    @param *{Function}* callback(**EventsContainer**)
+    @param *{Function}* callback(**EventsContainer**, **ErrorContainer**)
 
 ###containers:###
 **Calendar**:
