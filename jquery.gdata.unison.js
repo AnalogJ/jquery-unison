@@ -1,4 +1,4 @@
-(function ($, gapi) {
+(function ($) {
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Storage Classes
     // 
@@ -111,7 +111,18 @@
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Unison Events Storage Model
     //
-    
+    var successCallback = function(calId, ajaxOptions, data){
+                var _ajaxOptions = ajaxOptions;
+                var _data = data;
+                var _calId = calId;
+                return function(calendar){
+                    _data.eventStorage[_calId.toLowerCase()] = {};
+                    _data.eventStorage[_calId.toLowerCase()][ajaxOptions.date.getUTCFullYear()] = {};
+                    _data.eventStorage[_calId.toLowerCase()][ajaxOptions.date.getUTCFullYear()][ajaxOptions.date.getUTCMonth()] = calendar.items;
+                    console.log(_data.eventStorage);
+                    
+                }
+            }
     var AjaxModel = function($ele, data, ajaxOptions, callback){
         
         var keys = [];
@@ -143,17 +154,19 @@
             
         })()
     }
+     
     AjaxModel.prototype.getEvents = function(){
             
             for(var ndx in this.ajaxOptions.keys){
                 var calId = this.ajaxOptions.keys[ndx];
                 
                 console.log(gapi.client);
-                
+                this.counter.incr();
                 gapi.client.calendar.events.list({ 
                         'calendarId': calId,
-                    }).execute(function(){console.log(arguments)})
+                    }).execute(successCallback(calId, this.ajaxOptions, this.data))
             }
+            
             
         }
     
@@ -189,4 +202,4 @@
 
     };
 
-})(jQuery, gapi);
+})(jQuery);
