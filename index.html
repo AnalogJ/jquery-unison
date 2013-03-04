@@ -28,19 +28,19 @@
                     $(function(){
                     var options = {};
                     options.calendars = [{
-    "key": "Agricultural, Life and Environmental Sciences",
-    "id": "ualberta.ca_2v3p6rpf54suburs18h3444l6c@group.calendar.google.com"
-}, {
-    "key": "Arts",
-    "id": "ualberta.ca_1o55esai8rco0o8242i1p4nv88@group.calendar.google.com"
-}, {
-    "key": "Engineering",
-    "id": "ualberta.ca_hr1a511gaed15ve9p3t3ok7j2s@group.calendar.google.com"
-}];
+                        "key": "Agricultural, Life and Environmental Sciences",
+                        "id": "ualberta.ca_2v3p6rpf54suburs18h3444l6c@group.calendar.google.com"
+                    }, {
+                        "key": "Arts",
+                        "id": "ualberta.ca_1o55esai8rco0o8242i1p4nv88@group.calendar.google.com"
+                    }, {
+                        "key": "Engineering",
+                        "id": "ualberta.ca_hr1a511gaed15ve9p3t3ok7j2s@group.calendar.google.com"
+                    }];
                     
                     
                     $('#unison').unison(options)
-                    $('#unison').unison("eventsOnDate",{date: new Date()},function(eventsContainer, error){})
+                    $('#unison').unison("eventsOnDate",{date: new Date()},function(eventsContainer, error){console.log(eventsContainer); console.log(eventsContainer.flatten())})
                 });
                     
                 });

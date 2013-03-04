@@ -7,7 +7,14 @@
     };
     
     var EventsContainer = function(){};
-    EventsContainer.prototype.flatten = function(){};
+    EventsContainer.prototype.flatten = function(){
+        var flatEventList = [];
+        for(var prop in this){
+            flatEventList.push.apply(flatEventList, this[prop]);
+        }
+        return flatEventList;
+        
+    };
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Plugin Logic + Methods
@@ -68,27 +75,41 @@
 
                 var $this = $(this),
                     data = $this.data('unison');
-                console.log('eventsOnDate', $this,data);
                 // If the plugin hasn't been initialized yet
                 if(typeof(callback) =="undefined"){
                     return;
                 }
                 else if (!data) {
-                    callback(new EventsContainer(), new ErrorContainer("plugin has not been initialized yet."))
+                    callback(null, new ErrorContainer("plugin has not been initialized yet."))
+                    return;
+                }
+                else if(!util.isValidDate(options.date)){
+                    callback(null, new ErrorContainer("invalid date."))
                     return;
                 }
                 else{
-                    console.log('eventsOnDate', options);
+                    
                     options = $.extend({timezone:0}, options);
                     //validate options:
-                    if(!util.isValidDate(options.date)){
-                        callback(new EventsContainer(), new ErrorContainer("invalid date."))
-                        return;
-                    }
-                                        
+                                  
                     //build GetEventsInRange Options
-                    console.log('eventsOnDate starting.')
-                    var ajaxOptions = {};
+                    
+                    var startDate = new Date(
+                        Date.UTC(options.date.getFullYear(),
+                        options.date.getMonth(),
+                        options.date.getDate(),
+                        0 + options.timezone
+                    ));
+                    var endDate = new Date(
+                        Date.UTC(options.date.getFullYear(),
+                        options.date.getMonth(),
+                        options.date.getDate(),
+                        23 + options.timezone,
+                        59,
+                        59
+                    ));
+                    
+                    var ajaxOptions = {startDate: startDate, endDate: endDate };
                     var ajaxModel = new AjaxModel($this, data, ajaxOptions, callback)
                     ajaxModel.getEvents();
                     
@@ -111,16 +132,24 @@
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Unison Events Storage Model
     //
-    var successCallback = function(calId, ajaxOptions, data){
-                var _ajaxOptions = ajaxOptions;
-                var _data = data;
-                var _calId = calId;
+    var successCallback = function(calId, ajaxModel){
+                var _ajaxModel = ajaxModel;
+                var _ajaxOptions = _ajaxModel.ajaxOptions;
+                var _data = _ajaxModel.data;
+                var _calId = calId.toLowerCase();
                 return function(calendar){
-                    _data.eventStorage[_calId.toLowerCase()] = {};
-                    _data.eventStorage[_calId.toLowerCase()][ajaxOptions.date.getUTCFullYear()] = {};
-                    _data.eventStorage[_calId.toLowerCase()][ajaxOptions.date.getUTCFullYear()][ajaxOptions.date.getUTCMonth()] = calendar.items;
+                    
+                    var year = _ajaxOptions.startDate.getUTCFullYear();
+                    var month = _ajaxOptions.startDate.getUTCMonth();
+                    _ajaxModel.counter.decr();
+                    _data.eventStorage[_calId] = {};
+                    _data.eventStorage[_calId][year] = {};
+                    _data.eventStorage[_calId][year][month] = calendar.items;
                     console.log(_data.eventStorage);
                     
+                    if(!_ajaxModel.counter.getCount()){
+                        _ajaxModel.complete();
+                    }
                 }
             }
     var AjaxModel = function($ele, data, ajaxOptions, callback){
@@ -134,7 +163,6 @@
         this.callback = callback;
         this.$ele = $ele;
         this.data = data;
-        console.log(this)
         //counter closure to store the count state;
         this.counter = (function(){
             var count = 0;
@@ -157,20 +185,43 @@
      
     AjaxModel.prototype.getEvents = function(){
             
+            var year = this.ajaxOptions.startDate.getUTCFullYear();
+            var month = this.ajaxOptions.startDate.getUTCMonth();
+            
             for(var ndx in this.ajaxOptions.keys){
-                var calId = this.ajaxOptions.keys[ndx];
+                var calId = this.ajaxOptions.keys[ndx].toLowerCase();
                 
                 console.log(gapi.client);
-                this.counter.incr();
-                gapi.client.calendar.events.list({ 
+                if(
+                    typeof(this.data.eventStorage[calId]) == "undefined"
+                    || typeof(this.data.eventStorage[calId][year]) == "undefined"
+                    || typeof(this.data.eventStorage[calId][year][month]) == "undefined"
+                ){
+                    this.counter.incr();
+                    gapi.client.calendar.events.list({ 
                         'calendarId': calId,
-                    }).execute(successCallback(calId, this.ajaxOptions, this.data))
+                        "timeMin" : this.ajaxOptions.startDate.toISOString(),
+                        "timeMax" : this.ajaxOptions.endDate.toISOString()
+                    }).execute(successCallback(calId, this))
+                    
+                }
+                
             }
-            
+    }
+    
+    AjaxModel.prototype.complete = function(){
+        //no calendars left to parse. 
+        //create the eventContainer and return to callback.
+        var eventContainer = new EventsContainer();
+        for(var ndx in this.ajaxOptions.keys){
+            var key = this.ajaxOptions.keys[ndx].toLowerCase();
+            eventContainer[key] = this.data.eventStorage[key][this.ajaxOptions.startDate.getUTCFullYear()][this.ajaxOptions.startDate.getUTCMonth()];
             
         }
-    
-
+        
+        this.callback(eventContainer, null)
+        return;
+    }
 
 
 
