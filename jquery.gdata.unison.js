@@ -55,7 +55,7 @@
                 // Namespacing FTW
                 $this.removeData('unison');
 
-            })
+            });
 
         },
         
@@ -63,16 +63,14 @@
         /**
          *  @param {Object} options
             {
-                date: {Date},
-                timezone: {Int} - timezone offset, 0 = utc (utc offset eg. -7, +3)
-      
+                date: {Date} - UTC valid date with correct timezone.
                 keys: {Array of Strings} - Optional list of calendars to retrieve events from
             }
             @param *Function} callback(EventsContainer, ErrorContainer)
         **/
         eventsOnDate: function (options, callback) {
+            /*get dates from month if missing.*/
             return this.each(function () {
-
                 var $this = $(this),
                     data = $this.data('unison');
                 // If the plugin hasn't been initialized yet
@@ -80,50 +78,126 @@
                     return;
                 }
                 else if (!data) {
-                    callback(null, new ErrorContainer("plugin has not been initialized yet."))
+                    callback(null, new ErrorContainer("plugin has not been initialized yet."));
                     return;
                 }
                 else if(!util.isValidDate(options.date)){
-                    callback(null, new ErrorContainer("invalid date."))
+                    callback(null, new ErrorContainer("invalid date."));
                     return;
                 }
                 else{
                     
-                    options = $.extend({timezone:0}, options);
+                    options = $.extend({}, options);
                     //validate options:
                                   
                     //build GetEventsInRange Options
                     
                     var startDate = new Date(
-                        Date.UTC(options.date.getFullYear(),
-                        options.date.getMonth(),
-                        options.date.getDate(),
-                        0 + options.timezone
+                        Date.UTC(options.date.getUTCFullYear(),
+                        options.date.getUTCMonth(),
+                        options.date.getUTCDate(),
+                        0,0,0
                     ));
                     var endDate = new Date(
-                        Date.UTC(options.date.getFullYear(),
-                        options.date.getMonth(),
-                        options.date.getDate(),
-                        23 + options.timezone,
+                        Date.UTC(options.date.getUTCFullYear(),
+                        options.date.getUTCMonth(),
+                        options.date.getUTCDate(),
+                        23,
                         59,
-                        59
+                        59,999
                     ));
                     
                     var ajaxOptions = {startDate: startDate, endDate: endDate };
-                    var ajaxModel = new AjaxModel($this, data, ajaxOptions, callback)
+                    if(options.eventParser){
+                        ajaxOptions.eventParser = options.eventParser;
+                    }
+                    
+                    var ajaxModel = new AjaxModel($this, data, ajaxOptions, callback);
                     ajaxModel.getEvents();
                     
                     
                 }
             });
-        },
-        eventsInMonth: function (options, callback) {},
-        eventsInRange: function (options, callback) {
-            //options = $.extend({timezone:0, calendars: data.options.calendars}, options);
-            gapi.client.calendar.events.list({ 
-                        'calendarId': 'ualberta.ca_2v3p6rpf54suburs18h3444l6c@group.calendar.google.com'
-                    }).execute(function(){console.log(arguments)})
             
+        },
+        eventsInMonth: function (options, callback) {
+            return this.each(function () {
+                var $this = $(this),
+                    data = $this.data('unison');
+                // If the plugin hasn't been initialized yet
+                if(typeof(callback) =="undefined"){
+                    return;
+                }
+                else if (!data) {
+                    callback(null, new ErrorContainer("plugin has not been initialized yet."));
+                    return;
+                }
+                else if(!util.isValidDate(options.date)){
+                    callback(null, new ErrorContainer("invalid date."));
+                    return;
+                }
+                else{
+                    
+                    options = $.extend({}, options);
+                    //validate options:
+                                  
+                    //build GetEventsInRange Options
+                    
+                    var startDate = new Date(
+                        Date.UTC(options.date.getUTCFullYear(),
+                        options.date.getUTCMonth(),
+                        1,
+                        0,0,0
+                    ));
+                    var endDate = new Date(
+                        Date.UTC(options.date.getUTCFullYear(),
+                        options.date.getUTCMonth(),
+                        (new Date(Date.UTC(options.date.getUTCFullYear(), options.date.getUTCMonth() + 1, 0))).getUTCDate(),
+                        23,
+                        59,
+                        59,999
+                    ));
+                    
+                    var ajaxOptions = {startDate: startDate, endDate: endDate };
+                    if(options.eventParser){
+                        ajaxOptions.eventParser = options.eventParser;
+                    }
+                    
+                    var ajaxModel = new AjaxModel($this, data, ajaxOptions, callback);
+                    ajaxModel.getEvents();
+                    
+                    
+                }
+            });
+            
+        },
+        eventsInRange: function (options, callback) {
+            return this.each(function () {
+                var $this = $(this),
+                    data = $this.data('unison');
+                // If the plugin hasn't been initialized yet
+                if(typeof(callback) =="undefined"){
+                    return;
+                }
+                else if (!data) {
+                    callback(null, new ErrorContainer("plugin has not been initialized yet."));
+                    return;
+                }
+                else if(!util.isValidDate(options.startDate) || !util.isValidDate(options.endDate)){
+                    callback(null, new ErrorContainer("invalid start or end date."));
+                    return;
+                }
+                else{
+                    
+                    var ajaxOptions = $.extend({customRange: true}, options);
+                    //validate options:
+                                                    
+                    var ajaxModel = new AjaxModel($this, data, ajaxOptions, callback);
+                    ajaxModel.getEvents();
+                    
+                    
+                }
+            });
         },
         _debug : function(){}
     };
@@ -132,6 +206,8 @@
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Unison Events Storage Model
     //
+    
+    
     var successCallback = function(calId, ajaxModel){
                 var _ajaxModel = ajaxModel;
                 var _ajaxOptions = _ajaxModel.ajaxOptions;
@@ -142,16 +218,43 @@
                     var year = _ajaxOptions.startDate.getUTCFullYear();
                     var month = _ajaxOptions.startDate.getUTCMonth();
                     _ajaxModel.counter.decr();
-                    _data.eventStorage[_calId] = {};
-                    _data.eventStorage[_calId][year] = {};
-                    _data.eventStorage[_calId][year][month] = calendar.items;
-                    console.log(_data.eventStorage);
+                    
+                    //store calendarId information within each event.
+                    var genericEventParser = function(event){
+                        event._calID = _calId;
+                        event._ajaxOptions = _ajaxOptions;
+                        
+                    };
+                    
+                    
+                    if(!_ajaxOptions.customRange){
+                        _data.eventStorage[_calId] = {};
+                        _data.eventStorage[_calId][year] = {};
+                        _data.eventStorage[_calId][year][month] = (typeof(calendar.items) =="undefined" || calendar.items == null) ? [] : calendar.items;
+                    
+                    
+                        _data.eventStorage[_calId][year][month].map(genericEventParser);
+                    
+                        if(_ajaxOptions.eventParser){
+                            _data.eventStorage[_calId][year][month].map(_ajaxOptions.eventParser);
+                        }
+                    }
+                    else{
+                        _ajaxModel.customData[_calId] = (typeof(calendar.items) =="undefined" || calendar.items == null) ? [] : calendar.items;
+                        _ajaxModel.customData[_calId].map(genericEventParser);
+                        
+                        if(_ajaxOptions.eventParser){
+                            _ajaxModel.customData[_calId].map(_ajaxOptions.eventParser);
+                        }
+                    }
+                    
+                    
                     
                     if(!_ajaxModel.counter.getCount()){
                         _ajaxModel.complete();
                     }
-                }
-            }
+                };
+            };
     var AjaxModel = function($ele, data, ajaxOptions, callback){
         
         var keys = [];
@@ -163,6 +266,7 @@
         this.callback = callback;
         this.$ele = $ele;
         this.data = data;
+        this.customData = {}; //storage for custom ranges, not persistent. 
         //counter closure to store the count state;
         this.counter = (function(){
             var count = 0;
@@ -178,10 +282,10 @@
                 decr: decr,
                 getCount: function(){return count;}
                 
-            }
+            };
             
-        })()
-    }
+        })();
+    };
      
     AjaxModel.prototype.getEvents = function(){
             
@@ -202,26 +306,38 @@
                         'calendarId': calId,
                         "timeMin" : this.ajaxOptions.startDate.toISOString(),
                         "timeMax" : this.ajaxOptions.endDate.toISOString()
-                    }).execute(successCallback(calId, this))
+                    }).execute(successCallback(calId, this));
                     
                 }
                 
             }
-    }
+    };
     
     AjaxModel.prototype.complete = function(){
         //no calendars left to parse. 
         //create the eventContainer and return to callback.
         var eventContainer = new EventsContainer();
-        for(var ndx in this.ajaxOptions.keys){
-            var key = this.ajaxOptions.keys[ndx].toLowerCase();
-            eventContainer[key] = this.data.eventStorage[key][this.ajaxOptions.startDate.getUTCFullYear()][this.ajaxOptions.startDate.getUTCMonth()];
-            
+        
+        if(!this.ajaxOptions.customRange){
+            var year = this.ajaxOptions.startDate.getUTCFullYear();
+            var month = this.ajaxOptions.startDate.getUTCMonth();
+            for(var ndx in this.ajaxOptions.keys){
+                var key = this.ajaxOptions.keys[ndx].toLowerCase();
+                eventContainer[key] = this.data.eventStorage[key][year][month];
+            }
+        }
+        else{
+            for(var ndx in this.ajaxOptions.keys){
+                var key = this.ajaxOptions.keys[ndx].toLowerCase();
+                eventContainer[key] = this.customData[key];
+            }
         }
         
-        this.callback(eventContainer, null)
+        
+        
+        this.callback(eventContainer, null);
         return;
-    }
+    };
 
 
 
@@ -236,7 +352,7 @@
             return !isNaN(d.getTime());
         }
         
-    }
+    };
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // JQuery Plugin Core
